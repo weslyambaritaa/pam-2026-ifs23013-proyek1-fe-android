@@ -29,6 +29,7 @@ import org.delcom.pam_2026_ifs23013_proyek1_fe_android.helper.*
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.data.ResponseFoodData
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.components.*
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.*
+import org.delcom.pam_2026_ifs23013_proyek1_fe_android.R
 
 @Composable
 fun FoodsDetailScreen(
