@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,11 +23,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import org.delcom.pam_2026_ifs23013_proyek1_fe_android.R
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.helper.*
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.data.ResponseFoodData
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.components.*
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.*
-import org.delcom.pam_2026_ifs23013_proyek1_fe_android.R
 
 @Composable
 fun FoodsScreen(
@@ -36,7 +35,6 @@ fun FoodsScreen(
     authViewModel: AuthViewModel,
     foodViewModel: FoodViewModel
 ) {
-    // ... [Pertahankan deklarasi state yang sudah Anda buat di file asli] ...
     val uiStateAuth by authViewModel.uiState.collectAsState()
     val uiStateFood by foodViewModel.uiState.collectAsState()
 
@@ -73,22 +71,37 @@ fun FoodsScreen(
         }
     }
 
-    // Filter Logic Lokal
     val filteredFoods = if (selectedFilter == "Semua") {
         foods
     } else {
         foods.filter { it.category.equals(selectedFilter, ignoreCase = true) }
     }
 
-    // ... [Bagian menu logout dsb persis sama] ...
+    // Fungsi Logout
+    val menuItems = listOf(
+        TopAppBarMenuItem(
+            text = "Logout",
+            icon = Icons.AutoMirrored.Filled.Logout,
+            route = null,
+            onClick = {
+                isLoading = true
+                authViewModel.logout(authToken ?: "")
+            }
+        )
+    )
 
     if (isLoading) { LoadingUI(); return }
 
     Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         TopAppBarComponent(
-            navController = navController, title = "Foods", showBackButton = false,
-            withSearch = true, searchQuery = searchQuery,
-            onSearchQueryChange = { searchQuery = it }, onSearchAction = { fetchFoodsData() }
+            navController = navController,
+            title = "Daftar Makanan",
+            showBackButton = false,
+            withSearch = true,
+            searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it },
+            onSearchAction = { fetchFoodsData() },
+            customMenuItems = menuItems
         )
 
         // FILTER ROW CHIPS
@@ -110,8 +123,7 @@ fun FoodsScreen(
                 foods = filteredFoods,
                 onOpen = { RouteHelper.to(navController, "foods/$it") },
                 onLoadMore = {
-                    // Panggil fungsi ViewModel loadNextPage() disini jika API mendukung
-                    // foodViewModel.loadMoreFoods(...)
+                    // Panggil fungsi loadMoreFoods jika API-nya mendukung endless pagination
                 }
             )
 
@@ -130,21 +142,22 @@ fun FoodsScreen(
 fun FoodsUI(
     foods: List<ResponseFoodData>,
     onOpen: (String) -> Unit,
-    onLoadMore: () -> Unit // <-- Endless Scroll Callback
+    onLoadMore: () -> Unit
 ) {
     if (foods.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Tidak ada data!") }
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Tidak ada data makanan!")
+        }
         return
     }
 
     val listState = rememberLazyListState()
 
-    // DETEKSI INFINITE SCROLL
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastIndex ->
                 if (lastIndex != null && lastIndex >= foods.size - 1) {
-                    onLoadMore() // Load data tambahan saat user scroll ke paling bawah
+                    onLoadMore()
                 }
             }
     }
@@ -155,52 +168,41 @@ fun FoodsUI(
         }
     }
 }
-// (FoodItemUI tetap sama seperti milik Anda)
 
 @Composable
 fun FoodItemUI(
     food: ResponseFoodData,
     onOpen: (String) -> Unit
 ) {
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
-            .clickable {
-                onOpen(food.id)
-            },
-        elevation = CardDefaults.cardElevation(4.dp)
+            .clickable { onOpen(food.id) },
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface) // Perbaikan warna Dark Mode
     ) {
-
-        Row(
-            modifier = Modifier.padding(12.dp)
-        ) {
-
+        Row(modifier = Modifier.padding(12.dp)) {
             AsyncImage(
-                model = ToolsHelper.getFoodImage(
-                    food.id,
-                    food.updatedAt
-                ),
+                model = ToolsHelper.getFoodImage(food.id, food.updatedAt),
                 placeholder = painterResource(R.drawable.img_placeholder),
                 error = painterResource(R.drawable.img_placeholder),
                 contentDescription = food.name,
                 modifier = Modifier
                     .size(70.dp)
-                    .clip(MaterialTheme.shapes.medium),
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.surfaceVariant), // Background kotak gambar
                 contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = food.name,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -208,7 +210,8 @@ fun FoodItemUI(
                 Text(
                     text = food.description,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))

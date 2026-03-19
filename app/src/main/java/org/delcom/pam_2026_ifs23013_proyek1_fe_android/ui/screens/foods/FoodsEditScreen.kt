@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -145,27 +144,26 @@ fun FoodsEditUI(food: ResponseFoodData, onSave: (String, String, Int, Int, Strin
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally // Posisikan elemen ke tengah
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // --- BAGIAN FOTO ---
+        // --- BAGIAN FOTO DENGAN TEMA DINAMIS ---
         Text(
             text = "Tekan gambar untuk mengganti foto (Opsional)",
             style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant // Perbaikan warna Dark Mode
         )
 
         Box(
             modifier = Modifier
                 .size(200.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color.LightGray.copy(alpha = 0.3f))
+                .background(MaterialTheme.colorScheme.surfaceVariant) // Perbaikan warna Dark Mode
                 .clickable {
                     imagePicker.launch("image/*")
                 }
         ) {
             AsyncImage(
-                // Jika imageUri baru belum dipilih, tampilkan foto lama dari server
                 model = imageUri ?: ToolsHelper.getFoodImage(food.id, food.updatedAt),
                 placeholder = painterResource(R.drawable.img_placeholder),
                 error = painterResource(R.drawable.img_placeholder),
@@ -175,7 +173,6 @@ fun FoodsEditUI(food: ResponseFoodData, onSave: (String, String, Int, Int, Strin
             )
         }
 
-        // --- FORM INPUT ---
         OutlinedTextField(
             value = dataName, onValueChange = { dataName = it }, label = { Text("Nama Makanan") },
             modifier = Modifier.fillMaxWidth()

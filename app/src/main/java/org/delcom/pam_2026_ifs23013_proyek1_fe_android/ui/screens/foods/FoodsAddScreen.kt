@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -113,7 +112,6 @@ fun FoodsAddUI(onSave: (String, String, Int, Int, String, Boolean, Uri?) -> Unit
     var isAvailable by remember { mutableStateOf(true) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Launcher disamakan dengan gaya Detail & Edit Screen
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -129,27 +127,27 @@ fun FoodsAddUI(onSave: (String, String, Int, Int, String, Boolean, Uri?) -> Unit
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally // Memposisikan gambar ke tengah
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // --- BAGIAN FOTO ---
+        // --- BAGIAN FOTO DENGAN TEMA DINAMIS ---
         Text(
             text = "Tekan gambar untuk menambahkan foto",
             style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant // Perbaikan warna Dark Mode
         )
 
         Box(
             modifier = Modifier
                 .size(200.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color.LightGray.copy(alpha = 0.3f))
+                .background(MaterialTheme.colorScheme.surfaceVariant) // Perbaikan warna Dark Mode
                 .clickable {
                     imagePicker.launch("image/*")
                 }
         ) {
             AsyncImage(
-                model = imageUri, // Jika null, placeholder img_placeholder akan otomatis muncul
+                model = imageUri,
                 placeholder = painterResource(R.drawable.img_placeholder),
                 error = painterResource(R.drawable.img_placeholder),
                 contentDescription = "Food Image",
@@ -158,10 +156,9 @@ fun FoodsAddUI(onSave: (String, String, Int, Int, String, Boolean, Uri?) -> Unit
             )
         }
 
-        // --- FORM INPUT ---
         OutlinedTextField(
             value = name, onValueChange = { name = it }, label = { Text("Nama Makanan") },
-            modifier = Modifier.fillMaxWidth(), // Wajib fillMaxWidth agar memenuhi layar karena column CenterHorizontally
+            modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next)
         )
 

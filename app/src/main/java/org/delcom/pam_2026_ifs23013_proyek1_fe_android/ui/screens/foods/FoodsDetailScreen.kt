@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,133 +45,68 @@ fun FoodsDetailScreen(
     val authToken = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-
         isLoading = true
-
         if (uiStateAuth.auth !is AuthUIState.Success) {
-            RouteHelper.to(
-                navController,
-                ConstHelper.RouteNames.Home.path,
-                true
-            )
+            RouteHelper.to(navController, ConstHelper.RouteNames.Home.path, true)
             return@LaunchedEffect
         }
-
-        authToken.value =
-            (uiStateAuth.auth as AuthUIState.Success).data.authToken
-
+        authToken.value = (uiStateAuth.auth as AuthUIState.Success).data.authToken
         foodViewModel.getFoodById(authToken.value!!, foodId)
     }
 
     LaunchedEffect(uiStateFood.food) {
-
         if (uiStateFood.food !is FoodUIState.Loading) {
-
             if (uiStateFood.food is FoodUIState.Success) {
-
                 food = (uiStateFood.food as FoodUIState.Success).data
                 isLoading = false
-
             } else {
-
                 RouteHelper.back(navController)
             }
         }
     }
 
     fun onDelete() {
-
         if (authToken.value == null) return
-
         isLoading = true
-
-        foodViewModel.deleteFood(
-            authToken.value!!,
-            foodId
-        )
+        foodViewModel.deleteFood(authToken.value!!, foodId)
     }
 
     LaunchedEffect(uiStateFood.foodDelete) {
-
         when (val state = uiStateFood.foodDelete) {
-
             is FoodActionUIState.Success -> {
-
-                SuspendHelper.showSnackBar(
-                    snackbarHost,
-                    SuspendHelper.SnackBarType.SUCCESS,
-                    state.message
-                )
-
-                RouteHelper.to(
-                    navController,
-                    ConstHelper.RouteNames.Foods.path,
-                    true
-                )
-
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.SUCCESS, state.message)
+                RouteHelper.to(navController, ConstHelper.RouteNames.Foods.path, true)
                 isLoading = false
             }
-
             is FoodActionUIState.Error -> {
-
-                SuspendHelper.showSnackBar(
-                    snackbarHost,
-                    SuspendHelper.SnackBarType.ERROR,
-                    state.message
-                )
-
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.ERROR, state.message)
                 isLoading = false
             }
-
             else -> {}
         }
     }
 
-    if (isLoading || food == null) {
-        LoadingUI()
-        return
-    }
+    if (isLoading || food == null) { LoadingUI(); return }
 
     val detailMenuItems = listOf(
         TopAppBarMenuItem(
             text = "Ubah Data",
             icon = Icons.Filled.Edit,
             route = null,
-            onClick = {
-                RouteHelper.to(
-                    navController,
-                    ConstHelper.RouteNames.FoodsEdit.path
-                        .replace("{foodId}", food!!.id)
-                )
-            }
+            onClick = { RouteHelper.to(navController, ConstHelper.RouteNames.FoodsEdit.path.replace("{foodId}", food!!.id)) }
         ),
         TopAppBarMenuItem(
             text = "Hapus Data",
             icon = Icons.Filled.Delete,
             route = null,
-            onClick = {
-                isConfirmDelete = true
-            }
+            onClick = { isConfirmDelete = true }
         )
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+        TopAppBarComponent(navController = navController, title = "Detail Makanan", showBackButton = true, customMenuItems = detailMenuItems)
 
-        TopAppBarComponent(
-            navController = navController,
-            title = "Detail Makanan",
-            showBackButton = true,
-            customMenuItems = detailMenuItems
-        )
-
-        Box(
-            modifier = Modifier.weight(1f)
-        ) {
-
+        Box(modifier = Modifier.weight(1f)) {
             FoodsDetailUI(food = food!!)
 
             BottomDialog(
@@ -187,15 +121,12 @@ fun FoodsDetailScreen(
                 destructiveAction = true
             )
         }
-
         BottomNavComponent(navController = navController)
     }
 }
 
 @Composable
-fun FoodsDetailUI(
-    food: ResponseFoodData
-) {
+fun FoodsDetailUI(food: ResponseFoodData) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -206,18 +137,15 @@ fun FoodsDetailUI(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // --- BAGIAN FOTO (Sekarang Statis, tidak bisa di-klik) ---
+        // --- BAGIAN FOTO ---
         Box(
             modifier = Modifier
                 .size(200.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color.LightGray.copy(alpha = 0.3f))
+                .background(MaterialTheme.colorScheme.surfaceVariant) // Perbaikan warna Dark Mode
         ) {
             AsyncImage(
-                model = ToolsHelper.getFoodImage(
-                    food.id,
-                    food.updatedAt
-                ),
+                model = ToolsHelper.getFoodImage(food.id, food.updatedAt),
                 placeholder = painterResource(R.drawable.img_placeholder),
                 error = painterResource(R.drawable.img_placeholder),
                 contentDescription = "Food Image",
@@ -229,9 +157,7 @@ fun FoodsDetailUI(
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- BAGIAN DETAIL INFORMASI ---
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = food.name,
                 style = MaterialTheme.typography.headlineMedium,
@@ -240,14 +166,14 @@ fun FoodsDetailUI(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Baris informasi agar rapi dan rata
             InfoRow(label = "Kategori", value = food.category)
             InfoRow(label = "Harga", value = "Rp ${food.price}")
             InfoRow(label = "Kuantitas", value = "${food.quantity} item")
             InfoRow(label = "Status", value = if (food.isAvailable) "Tersedia" else "Habis / Tidak Tersedia")
 
             Spacer(modifier = Modifier.height(16.dp))
-            Divider(color = Color.LightGray, thickness = 1.dp)
+            // Perbaikan warna Divider pada Dark Mode
+            Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
@@ -262,12 +188,11 @@ fun FoodsDetailUI(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(80.dp)) // Jarak agar tidak tertutup BottomNav
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
-// Komponen Reusable agar UI Rapi
 @Composable
 fun InfoRow(label: String, value: String) {
     Row(
@@ -280,7 +205,7 @@ fun InfoRow(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant // Perbaikan warna Dark Mode
         )
         Text(
             text = value,
