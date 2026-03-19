@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "org.delcom.pam_p5_ifs23013"
+    namespace = "org.delcom.pam_2026_ifs23013_proyek1_fe_android"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -16,7 +16,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.delcom.pam_p5_ifs23013"
+        applicationId = "org.delcom.pam_2026_ifs23013_proyek1_fe_android"
         minSdk = 29
         targetSdk = 36
         versionCode = 1
