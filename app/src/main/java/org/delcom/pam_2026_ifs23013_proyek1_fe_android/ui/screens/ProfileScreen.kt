@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -50,72 +49,105 @@ fun ProfileScreen(
 
     val context = LocalContext.current
     val snackbarHost = remember { SnackbarHostState() }
-
-    // Edit state
     var isEditing by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        isLoading = true
-        if(uiStateAuth.auth !is AuthUIState.Success){
-            RouteHelper.to(navController, ConstHelper.RouteNames.Home.path, true)
-            return@LaunchedEffect
+    // 1. Pantau status Auth
+    LaunchedEffect(uiStateAuth.auth) {
+        when (uiStateAuth.auth) {
+            is AuthUIState.Success -> {
+                authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
+                todoViewModel.getProfile(authToken ?: "")
+            }
+            is AuthUIState.Error -> {
+                RouteHelper.to(navController, ConstHelper.RouteNames.AuthLogin.path, true)
+            }
+            else -> {}
         }
-        authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
-        todoViewModel.getProfile(authToken ?: "")
     }
 
+    // 2. Pantau hasil API Profil agar tidak loading terus-menerus saat Error
     LaunchedEffect(uiStateTodo.profile) {
-        if(uiStateTodo.profile !is ProfileUIState.Loading){
-            isLoading = false
-            if(uiStateTodo.profile is ProfileUIState.Success){
-                profile = (uiStateTodo.profile as ProfileUIState.Success).data
+        when (val state = uiStateTodo.profile) {
+            is ProfileUIState.Loading -> {
+                isLoading = true
+            }
+            is ProfileUIState.Success -> {
+                isLoading = false
+                profile = state.data
+            }
+            is ProfileUIState.Error -> {
+                isLoading = false
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.ERROR, state.message)
             }
         }
     }
 
-    // Listener Hasil Perubahan Nama
     LaunchedEffect(uiStateTodo.profileChange) {
         when (val state = uiStateTodo.profileChange) {
             is ProfileActionUIState.Success -> {
                 isLoading = false
                 todoViewModel.getProfile(authToken ?: "")
                 SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.SUCCESS, state.message)
-                todoViewModel.clearProfileMessage() // Reset state setelah ditayangkan
+                todoViewModel.clearProfileMessage()
             }
             is ProfileActionUIState.Error -> {
                 isLoading = false
                 SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.ERROR, state.message)
-                todoViewModel.clearProfileMessage() // Reset state setelah ditayangkan
+                todoViewModel.clearProfileMessage()
             }
             else -> {}
         }
     }
 
-    // Listener Hasil Perubahan Foto
     LaunchedEffect(uiStateTodo.profileChangePhoto) {
         when (val state = uiStateTodo.profileChangePhoto) {
             is ProfileActionUIState.Success -> {
                 isLoading = false
                 todoViewModel.getProfile(authToken ?: "")
                 SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.SUCCESS, state.message)
-                todoViewModel.clearProfileMessage() // Reset state setelah ditayangkan
+                todoViewModel.clearProfileMessage()
             }
             is ProfileActionUIState.Error -> {
                 isLoading = false
                 SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.ERROR, state.message)
-                todoViewModel.clearProfileMessage() // Reset state setelah ditayangkan
+                todoViewModel.clearProfileMessage()
             }
             else -> {}
         }
     }
 
-    fun onLogout(token: String){ isLoading = true; authViewModel.logout(token) }
+    fun onLogout() {
+        isLoading = true
+        authViewModel.logout(authToken ?: "")
+    }
 
-    if(isLoading || profile == null){ LoadingUI(); return }
+    // --- HANDLING LAYAR ERROR / LOADING ---
+    if (isLoading) {
+        LoadingUI()
+        return
+    }
 
+    if (profile == null) {
+        // Tampilkan layar darurat ini jika API gagal (misal karena token tidak valid)
+        Column(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Sesi berakhir atau token tidak valid.", color = MaterialTheme.colorScheme.onBackground)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { onLogout() }) {
+                Text("Log Out & Login Ulang")
+            }
+            SnackbarHost(hostState = snackbarHost)
+        }
+        return
+    }
+
+    // --- LAYAR UTAMA PROFIL ---
     val menuItems = listOf(
         TopAppBarMenuItem(text = "Edit Profil", icon = Icons.Filled.Edit, route = null, onClick = { isEditing = !isEditing }),
-        TopAppBarMenuItem(text = "Logout", icon = Icons.AutoMirrored.Filled.Logout, route = null, onClick = { onLogout(authToken ?: "") })
+        TopAppBarMenuItem(text = "Logout", icon = Icons.AutoMirrored.Filled.Logout, route = null, onClick = { onLogout() })
     )
 
     Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
@@ -176,7 +208,7 @@ fun ProfileUI(
                     modifier = Modifier
                         .size(110.dp)
                         .clip(CircleShape)
-                        .border(3.dp, Color.White, CircleShape)
+                        .border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
                         .clickable(enabled = isEditing) {
                             imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
@@ -200,7 +232,7 @@ fun ProfileUI(
                         Text("Simpan Perubahan")
                     }
                 } else {
-                    Text(text = profile.name, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(text = profile.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                     Text(text = "@${profile.username}", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

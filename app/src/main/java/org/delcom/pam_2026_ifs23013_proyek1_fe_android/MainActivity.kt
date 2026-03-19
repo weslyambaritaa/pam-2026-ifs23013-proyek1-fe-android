@@ -19,7 +19,6 @@ import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.AuthViewMod
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.TodoViewModel
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.FoodViewModel
 
-// GLOBAL STATE UNTUK TEMA (Agar bisa dipanggil dari komponen manapun)
 val LocalThemeIsDark = compositionLocalOf { false }
 val LocalThemeToggle = compositionLocalOf { {} }
 
@@ -32,18 +31,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 🔥 MEMBACA TOKEN DARI DATASTORE SAAT APLIKASI PERTAMA DIBUKA
+        authViewModel.loadTokenFromPreferences()
+
         enableEdgeToEdge()
         setContent {
-            // Ambil tema bawaan HP saat aplikasi pertama kali dibuka
             val systemTheme = isSystemInDarkTheme()
             var isDarkMode by remember { mutableStateOf(systemTheme) }
 
-            // Sediakan state ini ke seluruh aplikasi
             CompositionLocalProvider(
                 LocalThemeIsDark provides isDarkMode,
                 LocalThemeToggle provides { isDarkMode = !isDarkMode }
             ) {
-                // Terapkan isDarkMode ke Tema Utama
                 DelcomTheme(darkTheme = isDarkMode) {
                     UIApp(
                         todoViewModel = todoViewModel,

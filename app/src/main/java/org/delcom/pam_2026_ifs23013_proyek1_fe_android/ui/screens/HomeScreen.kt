@@ -2,29 +2,33 @@ package org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.helper.ConstHelper
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.helper.RouteHelper
+import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.data.ResponseFoodData
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.components.BottomNavComponent
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.components.LoadingUI
-import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.components.StatusCard
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.components.TopAppBarComponent
-import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.components.TopAppBarMenuItem
-import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.*
-import androidx.compose.ui.tooling.preview.Preview
-import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.theme.DelcomTheme
+import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.AuthUIState
+import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.AuthViewModel
+import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.FoodViewModel
+import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.viewmodels.FoodsUIState
 
 @Composable
 fun HomeScreen(
@@ -32,199 +36,162 @@ fun HomeScreen(
     authViewModel: AuthViewModel,
     foodViewModel: FoodViewModel
 ) {
-
     val uiStateAuth by authViewModel.uiState.collectAsState()
+    val uiStateFood by foodViewModel.uiState.collectAsState()
 
-    var isLoading by remember { mutableStateOf(false) }
-    var isFreshToken by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
+    var foods by remember { mutableStateOf<List<ResponseFoodData>>(emptyList()) }
     var authToken by remember { mutableStateOf<String?>(null) }
 
+    // PERBAIKAN: Gunakan LaunchedEffect(Unit) agar langsung dieksekusi 1 kali saat buka aplikasi
     LaunchedEffect(Unit) {
-
-        if (isLoading) return@LaunchedEffect
-
         isLoading = true
-        isFreshToken = true
+        if (uiStateAuth.auth !is AuthUIState.Success) {
+            // Jika belum punya token/belum sukses login, PAKSA pindah ke layar Login
+            RouteHelper.to(navController, ConstHelper.RouteNames.AuthLogin.path, true)
+            return@LaunchedEffect
+        }
 
-        uiStateAuth.authLogout = AuthLogoutUIState.Loading
-
-        authViewModel.loadTokenFromPreferences()
+        // Jika sukses, tarik data makanannya
+        authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
+        foodViewModel.getAllFoods(authToken ?: "")
     }
 
-    fun onLogout(token: String) {
-
-        isLoading = true
-        authViewModel.logout(token)
-    }
-
-    LaunchedEffect(uiStateAuth.auth) {
-
-        if (!isLoading) return@LaunchedEffect
-
-        if (uiStateAuth.auth !is AuthUIState.Loading) {
-
-            if (uiStateAuth.auth is AuthUIState.Success) {
-
-                if (isFreshToken) {
-
-                    val dataToken =
-                        (uiStateAuth.auth as AuthUIState.Success).data
-
-                    authViewModel.refreshToken(
-                        dataToken.authToken,
-                        dataToken.refreshToken
-                    )
-
-                    isFreshToken = false
-
-                } else if (uiStateAuth.authRefreshToken is AuthActionUIState.Success) {
-
-                    val newToken =
-                        (uiStateAuth.auth as AuthUIState.Success).data.authToken
-
-                    if (authToken != newToken) {
-                        authToken = newToken
-                    }
-
-                    isLoading = false
-                }
-
-            } else {
-
-                onLogout("")
+    // Menangkap hasil respons dari server untuk mematikan loading
+    LaunchedEffect(uiStateFood.foods) {
+        if (uiStateFood.foods !is FoodsUIState.Loading) {
+            isLoading = false
+            if (uiStateFood.foods is FoodsUIState.Success) {
+                foods = (uiStateFood.foods as FoodsUIState.Success).data
             }
         }
     }
 
-    LaunchedEffect(uiStateAuth.authLogout) {
+    if (isLoading) { LoadingUI(); return }
 
-        if (uiStateAuth.authLogout !is AuthLogoutUIState.Loading) {
+    // ----------------------------------------
+    // MENGHITUNG STATISTIK (LOGIKA FILTERING)
+    // ----------------------------------------
+    val totalMakanan = foods.count { it.category.equals("Makanan", ignoreCase = true) }
+    val totalMinuman = foods.count { it.category.equals("Minuman", ignoreCase = true) }
+    val totalTersedia = foods.count { it.isAvailable }
+    val totalHabis = foods.count { !it.isAvailable }
 
-            RouteHelper.to(
-                navController,
-                ConstHelper.RouteNames.AuthLogin.path,
-                true
-            )
-        }
-    }
-
-    if (isLoading || authToken == null || isFreshToken) {
-
-        LoadingUI()
-        return
-    }
-
-    val menuItems = listOf(
-
-        TopAppBarMenuItem(
-            text = "Profile",
-            icon = Icons.Filled.Person,
-            route = ConstHelper.RouteNames.Profile.path
-        ),
-
-        TopAppBarMenuItem(
-            text = "Logout",
-            icon = Icons.AutoMirrored.Filled.Logout,
-            route = null,
-            onClick = {
-                onLogout(authToken ?: "")
-            }
-        )
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBarComponent(
             navController = navController,
-            title = "Canteen Del",
-            showBackButton = false,
-            customMenuItems = menuItems
+            title = "Beranda",
+            showBackButton = false
         )
 
-        Box(
-            modifier = Modifier.weight(1f)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Text(
+                text = "Ringkasan Menu",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-            HomeUI()
+            // Baris Pertama: Makanan & Minuman
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                StatCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Makanan",
+                    count = totalMakanan,
+                    icon = Icons.Filled.Fastfood,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                StatCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Minuman",
+                    count = totalMinuman,
+                    icon = Icons.Filled.LocalCafe,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            // Baris Kedua: Tersedia & Habis (Tidak Tersedia)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                StatCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Tersedia",
+                    count = totalTersedia,
+                    icon = Icons.Filled.CheckCircle,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                StatCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Habis",
+                    count = totalHabis,
+                    icon = Icons.Filled.Cancel,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
         BottomNavComponent(navController = navController)
     }
 }
 
+// ----------------------------------------------------
+// KOMPONEN REUSABLE UNTUK KOTAK STATISTIK (CARD)
+// ----------------------------------------------------
 @Composable
-fun HomeUI() {
-
-    val totalFoods = 0
-    val availableFoods = 0
-    val unavailableFoods = 0
-
-    Column(
-        modifier = Modifier.padding(top = 16.dp)
+fun StatCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    count: Int,
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Card(
+        modifier = modifier.height(120.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
-
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            elevation = CardDefaults.cardElevation(6.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = contentColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = contentColor,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
             Text(
-                text = "🍽️ Canteen Del",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
+                text = "$count",
+                style = MaterialTheme.typography.headlineLarge,
+                color = contentColor,
+                fontWeight = FontWeight.Bold
             )
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-
-            StatusCard(
-                title = "Foods",
-                value = totalFoods.toString(),
-                icon = Icons.Default.Fastfood
-            )
-
-            StatusCard(
-                title = "Available",
-                value = availableFoods.toString(),
-                icon = Icons.Default.Restaurant
-            )
-
-            StatusCard(
-                title = "Unavailable",
-                value = unavailableFoods.toString(),
-                icon = Icons.AutoMirrored.Filled.List
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewHomeUI() {
-
-    DelcomTheme {
-
-        HomeUI()
     }
 }
