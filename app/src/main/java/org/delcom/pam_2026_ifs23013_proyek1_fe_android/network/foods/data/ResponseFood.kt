@@ -22,7 +22,8 @@ data class ResponseFoodData(
     @SerialName("quantity") val quantity: Int = 0, // 🔥 Pastikan ada quantity
     val category: String,
     val imageUrl: String? = null,
-    @SerialName("is_available") val isAvailable: Boolean = true, // 🔥 Kunci nama JSON
+
+    val available: Boolean,
     val createdAt: String = "",
     val updatedAt: String = ""
 )

@@ -74,8 +74,8 @@ fun HomeScreen(
     // ----------------------------------------
     val totalMakanan = foods.count { it.category.equals("Makanan", ignoreCase = true) }
     val totalMinuman = foods.count { it.category.equals("Minuman", ignoreCase = true) }
-    val totalTersedia = foods.count { it.isAvailable }
-    val totalHabis = foods.count { !it.isAvailable }
+    val totalTersedia = foods.count { it.available }
+    val totalHabis = foods.count { !it.available }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBarComponent(

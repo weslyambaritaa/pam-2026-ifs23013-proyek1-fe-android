@@ -16,6 +16,7 @@ import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.data.Respon
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.service.IFoodRepository
 import java.io.File
 import javax.inject.Inject
+import android.util.Log // Pastikan Anda meng-import Log
 
 sealed interface FoodsUIState {
     data class Success(val data: List<ResponseFoodData>) : FoodsUIState
@@ -49,6 +50,18 @@ data class UIStateFood(
 class FoodViewModel @Inject constructor(
     private val repository: IFoodRepository
 ) : ViewModel() {
+
+    fun insertFood(name: String, price: Int, available: Int /* atau Boolean */) {
+
+        // 1. TAMBAHKAN LOG DI SINI
+        Log.d("StatusFood", "Nilai status sebelum dikirim: $available")
+
+        viewModelScope.launch {
+            // 2. Kode pemanggilan API di bawahnya (contoh)
+            // val request = RequestFood(name, price, available)
+            // repository.insertFood(request)
+        }
+    }
 
     private val _uiState = MutableStateFlow(UIStateFood())
     val uiState = _uiState.asStateFlow()
@@ -97,7 +110,7 @@ class FoodViewModel @Inject constructor(
         }
     }
 
-    // 🔴 PERUBAHAN: Ditambahkan parameter quantity, isAvailable, dan imageFile
+    // 🔴 PERUBAHAN: Ditambahkan parameter quantity, available, dan imageFile
     fun postFood(
         authToken: String,
         name: String,
@@ -105,7 +118,7 @@ class FoodViewModel @Inject constructor(
         price: Int,
         quantity: Int,
         category: String,
-        isAvailable: Boolean = true,
+        available: Boolean = true,
         imageFile: File? = null
     ) {
         viewModelScope.launch {
@@ -120,7 +133,7 @@ class FoodViewModel @Inject constructor(
                         price = price,
                         quantity = quantity,
                         category = category,
-                        isAvailable = isAvailable
+                        available = available
                     )
                 )
 
@@ -168,7 +181,7 @@ class FoodViewModel @Inject constructor(
         price: Int,
         quantity: Int,
         category: String,
-        isAvailable: Boolean,
+        available: Boolean,
         imageFile: File? = null
     ) {
         viewModelScope.launch {
@@ -184,7 +197,7 @@ class FoodViewModel @Inject constructor(
                         price = price,
                         quantity = quantity,
                         category = category,
-                        isAvailable = isAvailable
+                        available = available
                     )
                 )
 

@@ -10,5 +10,5 @@ data class RequestFood(
     val price: Int,
     @SerialName("quantity") val quantity: Int, // 🔥 Pastikan ada quantity
     val category: String,
-    @SerialName("is_available") val isAvailable: Boolean // 🔥 Kunci nama JSON
+    val available: Boolean
 )

@@ -55,7 +55,7 @@ fun FoodsAddScreen(
         authToken.value = (uiStateAuth.auth as AuthUIState.Success).data.authToken
     }
 
-    fun onSave(name: String, description: String, price: Int, quantity: Int, category: String, isAvailable: Boolean, imageUri: Uri?) {
+    fun onSave(name: String, description: String, price: Int, quantity: Int, category: String, available: Boolean, imageUri: Uri?) {
         if (authToken.value == null) return
         isLoading = true
 
@@ -68,7 +68,7 @@ fun FoodsAddScreen(
             price = price,
             quantity = quantity,
             category = category,
-            isAvailable = isAvailable,
+            available = available,
             imageFile = imageFile
         )
     }
@@ -109,7 +109,7 @@ fun FoodsAddUI(onSave: (String, String, Int, Int, String, Boolean, Uri?) -> Unit
     var price by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Makanan") }
-    var isAvailable by remember { mutableStateOf(true) }
+    var available by remember { mutableStateOf(true) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
     val imagePicker = rememberLauncherForActivityResult(
@@ -201,10 +201,10 @@ fun FoodsAddUI(onSave: (String, String, Int, Int, String, Boolean, Uri?) -> Unit
         Column(modifier = Modifier.fillMaxWidth()) {
             Text("Status Ketersediaan")
             Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = isAvailable, onClick = { isAvailable = true })
+                RadioButton(selected = available, onClick = { available = true })
                 Text("Tersedia")
                 Spacer(modifier = Modifier.width(16.dp))
-                RadioButton(selected = !isAvailable, onClick = { isAvailable = false })
+                RadioButton(selected = !available, onClick = { available = false })
                 Text("Tidak Tersedia")
             }
         }
@@ -224,7 +224,7 @@ fun FoodsAddUI(onSave: (String, String, Int, Int, String, Boolean, Uri?) -> Unit
                     AlertHelper.show(alertState, AlertType.ERROR, "Data tidak boleh ada yang kosong!")
                     return@FloatingActionButton
                 }
-                onSave(name, description, price.toInt(), quantity.toInt(), category, isAvailable, imageUri)
+                onSave(name, description, price.toInt(), quantity.toInt(), category, available, imageUri)
             },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         ) {

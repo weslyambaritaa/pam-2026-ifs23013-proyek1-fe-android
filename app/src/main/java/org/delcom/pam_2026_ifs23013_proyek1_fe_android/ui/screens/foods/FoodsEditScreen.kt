@@ -72,7 +72,7 @@ fun FoodsEditScreen(
         }
     }
 
-    fun onSave(name: String, description: String, price: Int, quantity: Int, category: String, isAvailable: Boolean, imageUri: Uri?) {
+    fun onSave(name: String, description: String, price: Int, quantity: Int, category: String, available: Boolean, imageUri: Uri?) {
         isLoading = true
 
         val imageFile = imageUri?.let { ToolsHelper.uriToFile(context, it) }
@@ -85,7 +85,7 @@ fun FoodsEditScreen(
             price = price,
             quantity = quantity,
             category = category,
-            isAvailable = isAvailable,
+            available = available,
             imageFile = imageFile
         )
     }
@@ -126,7 +126,7 @@ fun FoodsEditUI(food: ResponseFoodData, onSave: (String, String, Int, Int, Strin
     var dataPrice by remember { mutableStateOf(food.price.toString()) }
     var dataQuantity by remember { mutableStateOf(food.quantity.toString()) }
     var dataCategory by remember { mutableStateOf(food.category) }
-    var dataAvailable by remember { mutableStateOf(food.isAvailable) }
+    var dataAvailable by remember { mutableStateOf(food.available) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
     val imagePicker = rememberLauncherForActivityResult(

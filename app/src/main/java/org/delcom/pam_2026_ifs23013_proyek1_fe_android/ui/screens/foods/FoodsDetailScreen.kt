@@ -169,7 +169,7 @@ fun FoodsDetailUI(food: ResponseFoodData) {
             InfoRow(label = "Kategori", value = food.category)
             InfoRow(label = "Harga", value = "Rp ${food.price}")
             InfoRow(label = "Kuantitas", value = "${food.quantity} item")
-            InfoRow(label = "Status", value = if (food.isAvailable) "Tersedia" else "Habis / Tidak Tersedia")
+            InfoRow(label = "Status", value = if (food.available) "Tersedia" else "Habis / Tidak Tersedia")
 
             Spacer(modifier = Modifier.height(16.dp))
             // Perbaikan warna Divider pada Dark Mode
