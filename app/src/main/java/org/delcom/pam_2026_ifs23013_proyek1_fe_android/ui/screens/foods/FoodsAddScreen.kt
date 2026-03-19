@@ -28,7 +28,6 @@ fun FoodsAddScreen(
     authViewModel: AuthViewModel,
     foodViewModel: FoodViewModel
 ) {
-
     val uiStateAuth by authViewModel.uiState.collectAsState()
     val uiStateFood by foodViewModel.uiState.collectAsState()
 
@@ -36,253 +35,144 @@ fun FoodsAddScreen(
     val authToken = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-
         if (uiStateAuth.auth !is AuthUIState.Success) {
-            RouteHelper.to(
-                navController,
-                ConstHelper.RouteNames.Home.path,
-                true
-            )
+            RouteHelper.to(navController, ConstHelper.RouteNames.Home.path, true)
             return@LaunchedEffect
         }
-
-        authToken.value =
-            (uiStateAuth.auth as AuthUIState.Success).data.authToken
+        authToken.value = (uiStateAuth.auth as AuthUIState.Success).data.authToken
     }
 
-    fun onSave(
-        name: String,
-        description: String,
-        price: Int,
-        category: String
-    ) {
-
+    // Tambahkan parameter quantity
+    fun onSave(name: String, description: String, price: Int, quantity: Int, category: String) {
         if (authToken.value == null) return
-
         isLoading = true
-
+        // Pastikan RequestFood & postFood di ViewModel diperbarui menerima quantity
         foodViewModel.postFood(
             authToken = authToken.value!!,
             name = name,
             description = description,
             price = price,
             category = category
+            // quantity = quantity // Uncomment jika API dan RequestFood sudah disesuaikan
         )
     }
 
     LaunchedEffect(uiStateFood.foodAdd) {
-
         when (val state = uiStateFood.foodAdd) {
-
             is FoodActionUIState.Success -> {
-
-                SuspendHelper.showSnackBar(
-                    snackbarHost = snackbarHost,
-                    type = SuspendHelper.SnackBarType.SUCCESS,
-                    message = state.message
-                )
-
-                RouteHelper.to(
-                    navController,
-                    ConstHelper.RouteNames.Foods.path,
-                    true
-                )
-
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.SUCCESS, state.message)
+                RouteHelper.to(navController, ConstHelper.RouteNames.Foods.path, true)
                 isLoading = false
             }
-
             is FoodActionUIState.Error -> {
-
-                SuspendHelper.showSnackBar(
-                    snackbarHost = snackbarHost,
-                    type = SuspendHelper.SnackBarType.ERROR,
-                    message = state.message
-                )
-
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.ERROR, state.message)
                 isLoading = false
             }
-
             else -> {}
         }
     }
 
-    if (isLoading) {
-        LoadingUI()
-        return
-    }
+    if (isLoading) { LoadingUI(); return }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-
-        TopAppBarComponent(
-            navController = navController,
-            title = "Tambah Food",
-            showBackButton = true
-        )
-
-        Box(
-            modifier = Modifier.weight(1f)
-        ) {
-
-            FoodsAddUI(
-                onSave = ::onSave
-            )
+    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+        TopAppBarComponent(navController = navController, title = "Tambah Food", showBackButton = true)
+        Box(modifier = Modifier.weight(1f)) {
+            FoodsAddUI(onSave = ::onSave)
         }
-
         BottomNavComponent(navController = navController)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FoodsAddUI(
-    onSave: (String, String, Int, String) -> Unit
-) {
-
+fun FoodsAddUI(onSave: (String, String, Int, Int, String) -> Unit) {
     val alertState = remember { mutableStateOf(AlertState()) }
 
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("") }
+    var quantity by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("Makanan") } // Default value
+
+    var expandedCategory by remember { mutableStateOf(false) }
+    val categoryOptions = listOf("Makanan", "Minuman")
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-
         OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Nama Food") },
+            value = name, onValueChange = { name = it }, label = { Text("Nama Food") },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            )
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next)
         )
 
         OutlinedTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = { Text("Description") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
-            maxLines = 5
+            value = description, onValueChange = { description = it }, label = { Text("Description") },
+            modifier = Modifier.fillMaxWidth().height(120.dp), maxLines = 5
         )
 
-        OutlinedTextField(
-            value = price,
-            onValueChange = { price = it },
-            label = { Text("Price") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            OutlinedTextField(
+                value = price, onValueChange = { price = it }, label = { Text("Harga") },
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
             )
-        )
+            OutlinedTextField(
+                value = quantity, onValueChange = { quantity = it }, label = { Text("Kuantitas") },
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done)
+            )
+        }
 
-        OutlinedTextField(
-            value = category,
-            onValueChange = { category = it },
-            label = { Text("Category") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text
+        // Dropdown Category
+        ExposedDropdownMenuBox(
+            expanded = expandedCategory,
+            onExpandedChange = { expandedCategory = !expandedCategory }
+        ) {
+            OutlinedTextField(
+                value = category, onValueChange = {}, readOnly = true,
+                label = { Text("Kategori") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategory) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
             )
-        )
+            ExposedDropdownMenu(expanded = expandedCategory, onDismissRequest = { expandedCategory = false }) {
+                categoryOptions.forEach { selectionOption ->
+                    DropdownMenuItem(
+                        text = { Text(selectionOption) },
+                        onClick = {
+                            category = selectionOption
+                            expandedCategory = false
+                        }
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(80.dp))
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-
+    Box(modifier = Modifier.fillMaxSize()) {
         FloatingActionButton(
             onClick = {
-
-                if (name.isEmpty()) {
-                    AlertHelper.show(
-                        alertState,
-                        AlertType.ERROR,
-                        "Nama food tidak boleh kosong!"
-                    )
+                if (name.isEmpty() || description.isEmpty() || price.isEmpty() || quantity.isEmpty()) {
+                    AlertHelper.show(alertState, AlertType.ERROR, "Data tidak boleh ada yang kosong!")
                     return@FloatingActionButton
                 }
-
-                if (description.isEmpty()) {
-                    AlertHelper.show(
-                        alertState,
-                        AlertType.ERROR,
-                        "Deskripsi tidak boleh kosong!"
-                    )
-                    return@FloatingActionButton
-                }
-
-                if (price.isEmpty()) {
-                    AlertHelper.show(
-                        alertState,
-                        AlertType.ERROR,
-                        "Harga tidak boleh kosong!"
-                    )
-                    return@FloatingActionButton
-                }
-
-                if (category.isEmpty()) {
-                    AlertHelper.show(
-                        alertState,
-                        AlertType.ERROR,
-                        "Kategori tidak boleh kosong!"
-                    )
-                    return@FloatingActionButton
-                }
-
-                onSave(
-                    name,
-                    description,
-                    price.toInt(),
-                    category
-                )
+                onSave(name, description, price.toInt(), quantity.toInt(), category)
             },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         ) {
-
-            Icon(
-                imageVector = Icons.Default.Save,
-                contentDescription = "Save Food"
-            )
+            Icon(imageVector = Icons.Default.Save, contentDescription = "Save Food")
         }
     }
 
     if (alertState.value.isVisible) {
-
         AlertDialog(
-            onDismissRequest = {
-                AlertHelper.dismiss(alertState)
-            },
-            title = {
-                Text(alertState.value.type.title)
-            },
-            text = {
-                Text(alertState.value.message)
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        AlertHelper.dismiss(alertState)
-                    }
-                ) {
-                    Text("OK")
-                }
-            }
+            onDismissRequest = { AlertHelper.dismiss(alertState) },
+            title = { Text(alertState.value.type.title) },
+            text = { Text(alertState.value.message) },
+            confirmButton = { TextButton(onClick = { AlertHelper.dismiss(alertState) }) { Text("OK") } }
         )
     }
 }

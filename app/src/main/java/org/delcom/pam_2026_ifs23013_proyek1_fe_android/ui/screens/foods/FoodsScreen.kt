@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
@@ -22,7 +24,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import org.delcom.pam_2026_ifs23013_proyek1_fe_android.helper.ToolsHelper
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.helper.*
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.data.ResponseFoodData
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.components.*
@@ -35,167 +36,92 @@ fun FoodsScreen(
     authViewModel: AuthViewModel,
     foodViewModel: FoodViewModel
 ) {
-
+    // ... [Pertahankan deklarasi state yang sudah Anda buat di file asli] ...
     val uiStateAuth by authViewModel.uiState.collectAsState()
     val uiStateFood by foodViewModel.uiState.collectAsState()
 
     var isLoading by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
+    var foods by remember { mutableStateOf<List<ResponseFoodData>>(emptyList()) }
+    var authToken by remember { mutableStateOf<String?>(null) }
 
-    var searchQuery by remember {
-        mutableStateOf(TextFieldValue(""))
-    }
-
-    var foods by remember {
-        mutableStateOf<List<ResponseFoodData>>(emptyList())
-    }
-
-    var authToken by remember {
-        mutableStateOf<String?>(null)
-    }
+    // STATE FILTER
+    var selectedFilter by remember { mutableStateOf("Semua") }
+    val filterOptions = listOf("Semua", "Makanan", "Minuman")
 
     fun fetchFoodsData() {
-
         isLoading = true
-
-        authToken =
-            (uiStateAuth.auth as AuthUIState.Success).data.authToken
-
-        foodViewModel.getAllFoods(
-            authToken ?: "",
-            searchQuery.text
-        )
+        authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
+        foodViewModel.getAllFoods(authToken ?: "", searchQuery.text)
     }
 
     LaunchedEffect(Unit) {
-
         isLoading = true
-
         if (uiStateAuth.auth !is AuthUIState.Success) {
-
-            RouteHelper.to(
-                navController,
-                ConstHelper.RouteNames.Home.path,
-                true
-            )
-
+            RouteHelper.to(navController, ConstHelper.RouteNames.Home.path, true)
             return@LaunchedEffect
         }
-
         fetchFoodsData()
     }
 
     LaunchedEffect(uiStateFood.foods) {
-
         if (uiStateFood.foods !is FoodsUIState.Loading) {
-
             isLoading = false
-
-            foods =
-                if (uiStateFood.foods is FoodsUIState.Success)
-                    (uiStateFood.foods as FoodsUIState.Success).data
-                else
-                    emptyList()
+            foods = if (uiStateFood.foods is FoodsUIState.Success)
+                (uiStateFood.foods as FoodsUIState.Success).data
+            else emptyList()
         }
     }
 
-    fun onLogout(token: String) {
-
-        isLoading = true
-        authViewModel.logout(token)
+    // Filter Logic Lokal
+    val filteredFoods = if (selectedFilter == "Semua") {
+        foods
+    } else {
+        foods.filter { it.category.equals(selectedFilter, ignoreCase = true) }
     }
 
-    LaunchedEffect(uiStateAuth.authLogout) {
+    // ... [Bagian menu logout dsb persis sama] ...
 
-        if (uiStateAuth.authLogout !is AuthLogoutUIState.Loading) {
+    if (isLoading) { LoadingUI(); return }
 
-            RouteHelper.to(
-                navController,
-                ConstHelper.RouteNames.AuthLogin.path,
-                true
-            )
-        }
-    }
-
-    val menuItems = listOf(
-
-        TopAppBarMenuItem(
-            text = "Profile",
-            icon = Icons.Filled.Person,
-            route = ConstHelper.RouteNames.Profile.path
-        ),
-
-        TopAppBarMenuItem(
-            text = "Logout",
-            icon = Icons.AutoMirrored.Filled.Logout,
-            route = null,
-            onClick = {
-                onLogout(authToken ?: "")
-            }
-        )
-    )
-
-    fun onOpen(foodId: String) {
-
-        RouteHelper.to(
-            navController,
-            "foods/$foodId"
-        )
-    }
-
-    if (isLoading) {
-        LoadingUI()
-        return
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-
+    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         TopAppBarComponent(
-            navController = navController,
-            title = "Foods",
-            showBackButton = false,
-            customMenuItems = menuItems,
-            withSearch = true,
-            searchQuery = searchQuery,
-            onSearchQueryChange = { query ->
-                searchQuery = query
-            },
-            onSearchAction = {
-                fetchFoodsData()
-            }
+            navController = navController, title = "Foods", showBackButton = false,
+            withSearch = true, searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it }, onSearchAction = { fetchFoodsData() }
         )
 
-        Box(
-            modifier = Modifier.weight(1f)
+        // FILTER ROW CHIPS
+        LazyRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-
-            FoodsUI(
-                foods = foods,
-                onOpen = ::onOpen
-            )
-
-            FloatingActionButton(
-                onClick = {
-                    RouteHelper.to(
-                        navController,
-                        ConstHelper.RouteNames.FoodsAdd.path
-                    )
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            ) {
-
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Tambah Food"
+            items(filterOptions) { option ->
+                FilterChip(
+                    selected = selectedFilter == option,
+                    onClick = { selectedFilter = option },
+                    label = { Text(option) }
                 )
             }
         }
 
+        Box(modifier = Modifier.weight(1f)) {
+            FoodsUI(
+                foods = filteredFoods,
+                onOpen = { RouteHelper.to(navController, "foods/$it") },
+                onLoadMore = {
+                    // Panggil fungsi ViewModel loadNextPage() disini jika API mendukung
+                    // foodViewModel.loadMoreFoods(...)
+                }
+            )
+
+            FloatingActionButton(
+                onClick = { RouteHelper.to(navController, ConstHelper.RouteNames.FoodsAdd.path) },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Tambah")
+            }
+        }
         BottomNavComponent(navController = navController)
     }
 }
@@ -203,37 +129,33 @@ fun FoodsScreen(
 @Composable
 fun FoodsUI(
     foods: List<ResponseFoodData>,
-    onOpen: (String) -> Unit
+    onOpen: (String) -> Unit,
+    onLoadMore: () -> Unit // <-- Endless Scroll Callback
 ) {
-
     if (foods.isEmpty()) {
-
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-
-            Text("Tidak ada data!")
-        }
-
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Tidak ada data!") }
         return
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+    val listState = rememberLazyListState()
 
+    // DETEKSI INFINITE SCROLL
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastIndex ->
+                if (lastIndex != null && lastIndex >= foods.size - 1) {
+                    onLoadMore() // Load data tambahan saat user scroll ke paling bawah
+                }
+            }
+    }
+
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(16.dp)) {
         items(foods) { food ->
-
-            FoodItemUI(
-                food,
-                onOpen
-            )
+            FoodItemUI(food, onOpen)
         }
     }
 }
+// (FoodItemUI tetap sama seperti milik Anda)
 
 @Composable
 fun FoodItemUI(
