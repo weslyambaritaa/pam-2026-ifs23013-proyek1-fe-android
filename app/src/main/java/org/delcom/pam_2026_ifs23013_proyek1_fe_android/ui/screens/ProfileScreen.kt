@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,6 +48,9 @@ fun ProfileScreen(
     var profile by remember { mutableStateOf<ResponseUserData?>(null) }
     var authToken by remember { mutableStateOf<String?>(null) }
 
+    val context = LocalContext.current
+    val snackbarHost = remember { SnackbarHostState() }
+
     // Edit state
     var isEditing by remember { mutableStateOf(false) }
 
@@ -70,6 +73,42 @@ fun ProfileScreen(
         }
     }
 
+    // Listener Hasil Perubahan Nama
+    LaunchedEffect(uiStateTodo.profileChange) {
+        when (val state = uiStateTodo.profileChange) {
+            is ProfileActionUIState.Success -> {
+                isLoading = false
+                todoViewModel.getProfile(authToken ?: "")
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.SUCCESS, state.message)
+                todoViewModel.clearProfileMessage() // Reset state setelah ditayangkan
+            }
+            is ProfileActionUIState.Error -> {
+                isLoading = false
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.ERROR, state.message)
+                todoViewModel.clearProfileMessage() // Reset state setelah ditayangkan
+            }
+            else -> {}
+        }
+    }
+
+    // Listener Hasil Perubahan Foto
+    LaunchedEffect(uiStateTodo.profileChangePhoto) {
+        when (val state = uiStateTodo.profileChangePhoto) {
+            is ProfileActionUIState.Success -> {
+                isLoading = false
+                todoViewModel.getProfile(authToken ?: "")
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.SUCCESS, state.message)
+                todoViewModel.clearProfileMessage() // Reset state setelah ditayangkan
+            }
+            is ProfileActionUIState.Error -> {
+                isLoading = false
+                SuspendHelper.showSnackBar(snackbarHost, SuspendHelper.SnackBarType.ERROR, state.message)
+                todoViewModel.clearProfileMessage() // Reset state setelah ditayangkan
+            }
+            else -> {}
+        }
+    }
+
     fun onLogout(token: String){ isLoading = true; authViewModel.logout(token) }
 
     if(isLoading || profile == null){ LoadingUI(); return }
@@ -87,12 +126,20 @@ fun ProfileScreen(
                 profile = profile!!,
                 isEditing = isEditing,
                 onSaveProfile = { newName ->
-                    // Panggil fungsi update Profil di ViewModel (misal authViewModel.putUserMe)
+                    isLoading = true
                     isEditing = false
+                    todoViewModel.putUserMe(authToken ?: "", newName, profile!!.username)
                 },
                 onChangePhoto = { uri ->
-                    // Panggil fungsi update Photo di ViewModel (misal authViewModel.putUserMePhoto)
+                    isLoading = true
+                    val filePart = ToolsHelper.uriToMultipart(context, uri, "file")
+                    todoViewModel.putUserMePhoto(authToken ?: "", filePart)
                 }
+            )
+
+            SnackbarHost(
+                hostState = snackbarHost,
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
         BottomNavComponent(navController = navController)
@@ -120,9 +167,8 @@ fun ProfileUI(
         Box(modifier = Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 16.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-                // Photo Profil dengan Click (Jika Editing)
                 AsyncImage(
-                    model = selectedImageUri ?: ToolsHelper.getUserImage(profile.id),
+                    model = selectedImageUri ?: ToolsHelper.getUserImage(profile.id, profile.updatedAt),
                     contentDescription = "Photo Profil",
                     placeholder = painterResource(R.drawable.img_placeholder),
                     error = painterResource(R.drawable.img_placeholder),

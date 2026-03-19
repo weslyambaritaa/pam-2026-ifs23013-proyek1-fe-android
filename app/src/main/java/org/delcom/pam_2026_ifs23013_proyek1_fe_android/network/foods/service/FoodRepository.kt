@@ -126,13 +126,15 @@ class FoodRepository(
     }
 
     // 🔥 PERBAIKAN DISINI
+    // 🔥 PERBAIKAN DISINI
     override suspend fun putFoodImage(
-        authToken: String,
+        token: String,
         foodId: String,
         file: MultipartBody.Part
     ): ResponseMessage<String?> {
         return SuspendHelper.safeApiCall {
-            apiService.putFoodImage("Bearer $authToken", foodId, file)
+            // Wajib menggunakan "Bearer $token" agar Ktor bisa mengenalinya
+            apiService.putFoodImage("Bearer $token", foodId, file)
         }
     }
 

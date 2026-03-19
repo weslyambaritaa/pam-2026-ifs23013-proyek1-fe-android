@@ -18,6 +18,7 @@ data class ResponseFoodData(
     val name: String,
     val description: String,
     val price: Int,
+    val quantity: Int = 0,
     val category: String,
     val imageUrl: String? = null,
     val isAvailable: Boolean = true,

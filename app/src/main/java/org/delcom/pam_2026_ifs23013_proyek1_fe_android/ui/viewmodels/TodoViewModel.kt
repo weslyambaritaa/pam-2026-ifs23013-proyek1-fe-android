@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.todos.data.RequestTodo
+import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.todos.data.RequestUserChange
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.todos.data.ResponseTodoData
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.todos.data.ResponseUserData
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.todos.service.ITodoRepository
@@ -19,6 +20,14 @@ sealed interface ProfileUIState {
     data class Success(val data: ResponseUserData) : ProfileUIState
     data class Error(val message: String) : ProfileUIState
     object Loading : ProfileUIState
+}
+
+// TAMBAHKAN object Idle di sini
+sealed interface ProfileActionUIState {
+    data class Success(val message: String) : ProfileActionUIState
+    data class Error(val message: String) : ProfileActionUIState
+    object Loading : ProfileActionUIState
+    object Idle : ProfileActionUIState
 }
 
 sealed interface TodosUIState {
@@ -41,6 +50,9 @@ sealed interface TodoActionUIState {
 
 data class UIStateTodo(
     val profile: ProfileUIState = ProfileUIState.Loading,
+    // UBAH defaultnya menjadi Idle
+    var profileChange: ProfileActionUIState = ProfileActionUIState.Idle,
+    var profileChangePhoto: ProfileActionUIState = ProfileActionUIState.Idle,
     val todos: TodosUIState = TodosUIState.Loading,
     var todo: TodoUIState = TodoUIState.Loading,
     var todoAdd: TodoActionUIState = TodoActionUIState.Loading,
@@ -83,6 +95,42 @@ class TodoViewModel @Inject constructor(
                 it.copy(
                     profile = tmpState
                 )
+            }
+        }
+    }
+
+    fun putUserMe(authToken: String, name: String, username: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(profileChange = ProfileActionUIState.Loading) }
+            _uiState.update { state ->
+                val tmpState = runCatching {
+                    repository.putUserMe(authToken, RequestUserChange(name, username))
+                }.fold(
+                    onSuccess = {
+                        if (it.status == "success") ProfileActionUIState.Success(it.message)
+                        else ProfileActionUIState.Error(it.message)
+                    },
+                    onFailure = { ProfileActionUIState.Error(it.message ?: "Unknown error") }
+                )
+                state.copy(profileChange = tmpState)
+            }
+        }
+    }
+
+    fun putUserMePhoto(authToken: String, file: MultipartBody.Part) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(profileChangePhoto = ProfileActionUIState.Loading) }
+            _uiState.update { state ->
+                val tmpState = runCatching {
+                    repository.putUserMePhoto(authToken, file)
+                }.fold(
+                    onSuccess = {
+                        if (it.status == "success") ProfileActionUIState.Success(it.message)
+                        else ProfileActionUIState.Error(it.message)
+                    },
+                    onFailure = { ProfileActionUIState.Error(it.message ?: "Unknown error") }
+                )
+                state.copy(profileChangePhoto = tmpState)
             }
         }
     }
@@ -269,7 +317,6 @@ class TodoViewModel @Inject constructor(
         }
     }
 
-
     fun deleteTodo(authToken: String, todoId: String) {
         viewModelScope.launch {
             _uiState.update {
@@ -300,6 +347,16 @@ class TodoViewModel @Inject constructor(
                     todoDelete = tmpState
                 )
             }
+        }
+    }
+
+    // FUNGSI BARU UNTUK MERESET STATUS (MENGHAPUS NOTIFIKASI)
+    fun clearProfileMessage() {
+        _uiState.update {
+            it.copy(
+                profileChange = ProfileActionUIState.Idle,
+                profileChangePhoto = ProfileActionUIState.Idle
+            )
         }
     }
 }

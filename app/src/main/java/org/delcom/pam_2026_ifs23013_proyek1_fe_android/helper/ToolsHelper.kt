@@ -9,8 +9,25 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.BuildConfig
 import java.io.File
+import java.io.FileOutputStream
 
 object ToolsHelper {
+
+    fun uriToFile(context: Context, uri: Uri): File {
+        val contentResolver = context.contentResolver
+        // Buat file sementara di cache direktori
+        val tempFile = File.createTempFile("temp_image", ".jpg", context.cacheDir)
+
+        val inputStream = contentResolver.openInputStream(uri)
+        val outputStream = FileOutputStream(tempFile)
+
+        inputStream?.copyTo(outputStream)
+
+        inputStream?.close()
+        outputStream.close()
+
+        return tempFile
+    }
 
     // -----------------------------
     // Food Image
@@ -66,23 +83,23 @@ object ToolsHelper {
     // -----------------------------
     // Uri → File
     // -----------------------------
-    fun uriToFile(
-        context: Context,
-        uri: Uri
-    ): File {
-
-        val file = File.createTempFile(
-            "upload",
-            ".tmp",
-            context.cacheDir
-        )
-
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            file.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
-
-        return file
-    }
+//    fun uriToFile(
+//        context: Context,
+//        uri: Uri
+//    ): File {
+//
+//        val file = File.createTempFile(
+//            "upload",
+//            ".tmp",
+//            context.cacheDir
+//        )
+//
+//        context.contentResolver.openInputStream(uri)?.use { input ->
+//            file.outputStream().use { output ->
+//                input.copyTo(output)
+//            }
+//        }
+//
+//        return file
+//    }
 }

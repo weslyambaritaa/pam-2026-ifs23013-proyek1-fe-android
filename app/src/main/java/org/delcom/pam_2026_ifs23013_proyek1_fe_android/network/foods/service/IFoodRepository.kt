@@ -76,7 +76,7 @@ interface IFoodRepository {
 
     // 🔥 PERBAIKAN DISINI
     suspend fun putFoodImage(
-        authToken: String,
+        token: String,
         foodId: String,
         file: MultipartBody.Part
     ): ResponseMessage<String?>

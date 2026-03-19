@@ -1,12 +1,6 @@
 package org.delcom.pam_2026_ifs23013_proyek1_fe_android.ui.screens.foods
 
-import android.content.Context
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,11 +10,13 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -132,41 +128,17 @@ fun FoodsDetailScreen(
         }
     }
 
-    fun onChangeImage(
-        context: Context,
-        file: Uri
-    ) {
-
-        if (authToken.value == null) return
-
-        isLoading = true
-
-        val filePart = ToolsHelper.uriToMultipart(
-            context,
-            file,
-            "file"
-        )
-
-        foodViewModel.putFoodImage(
-            authToken = authToken.value!!,
-            foodId = foodId,
-            file = filePart
-        )
-    }
-
     if (isLoading || food == null) {
         LoadingUI()
         return
     }
 
     val detailMenuItems = listOf(
-
         TopAppBarMenuItem(
             text = "Ubah Data",
             icon = Icons.Filled.Edit,
             route = null,
             onClick = {
-
                 RouteHelper.to(
                     navController,
                     ConstHelper.RouteNames.FoodsEdit.path
@@ -174,13 +146,11 @@ fun FoodsDetailScreen(
                 )
             }
         ),
-
         TopAppBarMenuItem(
             text = "Hapus Data",
             icon = Icons.Filled.Delete,
             route = null,
             onClick = {
-
                 isConfirmDelete = true
             }
         )
@@ -194,7 +164,7 @@ fun FoodsDetailScreen(
 
         TopAppBarComponent(
             navController = navController,
-            title = food!!.name,
+            title = "Detail Makanan",
             showBackButton = true,
             customMenuItems = detailMenuItems
         )
@@ -203,10 +173,7 @@ fun FoodsDetailScreen(
             modifier = Modifier.weight(1f)
         ) {
 
-            FoodsDetailUI(
-                food = food!!,
-                onChangeImage = ::onChangeImage
-            )
+            FoodsDetailUI(food = food!!)
 
             BottomDialog(
                 type = BottomDialogType.ERROR,
@@ -227,42 +194,27 @@ fun FoodsDetailScreen(
 
 @Composable
 fun FoodsDetailUI(
-    food: ResponseFoodData,
-    onChangeImage: (Context, Uri) -> Unit
+    food: ResponseFoodData
 ) {
-
-    var dataFile by remember { mutableStateOf<Uri?>(null) }
-    val context = LocalContext.current
-
-    val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        dataFile = uri
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // --- BAGIAN FOTO (Sekarang Statis, tidak bisa di-klik) ---
         Box(
             modifier = Modifier
-                .size(180.dp)
+                .size(200.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .clickable {
-
-                    imagePicker.launch(
-                        PickVisualMediaRequest(
-                            ActivityResultContracts.PickVisualMedia.ImageOnly
-                        )
-                    )
-                }
+                .background(Color.LightGray.copy(alpha = 0.3f))
         ) {
-
             AsyncImage(
-                model = dataFile ?: ToolsHelper.getFoodImage(
+                model = ToolsHelper.getFoodImage(
                     food.id,
                     food.updatedAt
                 ),
@@ -274,48 +226,66 @@ fun FoodsDetailUI(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = food.name,
-            style = MaterialTheme.typography.headlineMedium
-        )
+        // --- BAGIAN DETAIL INFORMASI ---
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = food.name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Price : Rp ${food.price}",
-            style = MaterialTheme.typography.bodyLarge
-        )
+            // Baris informasi agar rapi dan rata
+            InfoRow(label = "Kategori", value = food.category)
+            InfoRow(label = "Harga", value = "Rp ${food.price}")
+            InfoRow(label = "Kuantitas", value = "${food.quantity} item")
+            InfoRow(label = "Status", value = if (food.isAvailable) "Tersedia" else "Habis / Tidak Tersedia")
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = Color.LightGray, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Category : ${food.category}",
-            style = MaterialTheme.typography.bodyMedium
-        )
+            Text(
+                text = "Deskripsi",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = food.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = food.description,
-            style = MaterialTheme.typography.bodyMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (dataFile != null) {
-
-            Button(
-                onClick = {
-
-                    onChangeImage(context, dataFile!!)
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-
-                Text("Simpan Gambar")
-            }
+            Spacer(modifier = Modifier.height(80.dp)) // Jarak agar tidak tertutup BottomNav
         }
+    }
+}
+
+// Komponen Reusable agar UI Rapi
+@Composable
+fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Gray
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

@@ -24,7 +24,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "BASE_URL", "\"https://pam-2026-ifs23040-proyek1-be.wahyurfz.site:8080/\"")
+        buildConfigField("String", "BASE_URL", "\"https://pam-2026-ifs23013-proyek1-be.weslyambaritaa.fun:8080/\"")
     }
 
     buildTypes {
