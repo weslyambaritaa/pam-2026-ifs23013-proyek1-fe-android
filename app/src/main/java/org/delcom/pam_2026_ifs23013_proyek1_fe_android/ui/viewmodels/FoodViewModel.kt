@@ -11,7 +11,6 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.data.RequestFood
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.data.ResponseFoodData
 import org.delcom.pam_2026_ifs23013_proyek1_fe_android.network.foods.service.IFoodRepository
 import java.io.File
